@@ -1,0 +1,14 @@
+{"Collector ID": "IB", "Date of acquisition": "20240528", "Probe model": "SPW16", "TX/RX device model": "US-KEY Lecoeur Electronique", "TX/RX device params": {"PulseVoltage": 40, "Pulsewidth": 14, "PRF[kHz]": 1}, "Number of data points": 11, "Data Labels": {"290_1": {"Label": "pathological area", "Height": 11, "Gain": 13, "Filter MHz": 10},
+"290_2": {"Label": "pathological area", "Height": 11, "Gain": 20, "Filter MHz": 10},
+"290_3": {"Label": "pathological area", "Height": 11, "Gain": 13, "Filter MHz": 10},
+"290_4": {"Label": "pathological area", "Height": 11, "Gain": 20, "Filter MHz": 10},
+"290_5": {"Label": "not pathological area", "Height": 8, "Gain": 13, "Filter MHz": 10},
+"290_6": {"Label": "N/A", "Height": 8, "Gain": 20, "Filter MHz": 5},
+"290_7": {"Label": "not pathological area", "Height": 8, "Gain": 20, "Filter MHz": 10},
+"290_8": {"Label": "not pathological area", "Height": 10, "Gain": 20, "Filter MHz": 10},
+"290_9": {"Label": "N/A", "Height": 10, "Gain": 13, "Filter MHz": 5},
+"290_10": {"Label": "pathological area", "Height": 14, "Gain": 20, "Filter MHz": 10},
+"290_11": {"Label": "not pathological area", "Height": 8, "Gain": 20, "Filter MHz": 10}
+}, "path_level": 1}
+
+
