@@ -44,9 +44,9 @@ def main(data_path, sample_id, platform_type, verbose):
 if __name__ == '__main__':
     
     # Select the folder containing the data 
-    DATA_PATH = './example_data'
+    DATA_PATH = './histologydata/example_data'
 
     # Select the id of the sample to visualize
     SAMPLE_ID = '290'
     
-    main(DATA_PATH, SAMPLE_ID, 'ultrasound,scanner', verbose=True)
+    main(DATA_PATH, SAMPLE_ID, 'ultrasound, scanner', verbose=True)

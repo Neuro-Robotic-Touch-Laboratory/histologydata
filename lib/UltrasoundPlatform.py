@@ -72,6 +72,7 @@ def plot_data_us_oneSignal(data):
         - Contact: fabrizia.auletta@santannapisa.it
     """
     # Extract unique IDs
+    print(data)
     us_ids = data['metadata']['file_id'].unique()
 
     # Prompt user for ID selection
@@ -121,7 +122,7 @@ def aggregate_data(data):
         - Contact: fabrizia.auletta@santannapisa.it
     """ 
    
-    df = pd.DataFrame(columns=['file_id', 'hf'])
+    df = pd.DataFrame(columns=['file_id', 'hf', 'label'])
 
     file_id, hf = [], []
     for idx in data['data'].index:
@@ -130,7 +131,7 @@ def aggregate_data(data):
 
     df['file_id'] = file_id
     df['hf'] = hf
-    df['label'] = data['metadata']['label']
+    df['label'] = data['metadata']['Label'].values
     
     SAMPLING_Fr = 80_000_000 #digitalization-uskey
     dt = 1/SAMPLING_Fr
@@ -188,8 +189,11 @@ def plot_data_us_aggregated(data, datatype = 'hf'):
     
     df = aggregate_data(data)
     
+   
+    
     if 'norm' in datatype: 
-        df['Gain'] = data['metadata']['Gain']
+        df['Gain'] = data['metadata']['Gain'].values
+        logger.info(df['Gain'])
         df['hf_norm'] = df.apply(lambda row: norm(row['hf'], row['Gain'], 20), axis=1)
     
     # Expand datatype arrays into separate rows for plotting

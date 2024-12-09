@@ -157,18 +157,6 @@ def load_data(data_path, sample_id = '',  platform_type = '', verbose =  False):
                                     logger.debug(data_us[us_sig])
                         data_us.rename(columns=col_names, inplace=True)
                         us_dict['data'] = data_us.T
-                    if 'metadata' in folder: 
-                        logger.debug('getting labels')
-                        meta_file = glob.glob(os.path.join(folder,'*.csv'))[0]
-                        meta_us = pd.read_json(meta_file)
-                        meta_us_df = pd.DataFrame.from_dict(meta_us)
-                        for row in meta_us_df.index: 
-                            meta_us_df.loc[row,'label'] = meta_us_df.loc[row]['Data labels']['label']
-                            meta_us_df.loc[row,'height'] = meta_us_df.loc[row]['Data labels']['height']
-                            meta_us_df.loc[row,'Gain'] = meta_us_df.loc[row]['Data labels']['Gain']
-                            meta_us_df.loc[row,'Filter'] = meta_us_df.loc[row]['Data labels']['Filter MHz']
-                        meta_us_df.drop(columns=['Data labels'])
-                        us_dict['metadata'] = meta_us_df
                     if 'IMG_pictures' in folder: 
                         logger.debug('loading images')
                         images = glob.glob(os.path.join(folder,'*.jpg'))
@@ -179,6 +167,21 @@ def load_data(data_path, sample_id = '',  platform_type = '', verbose =  False):
                                 if '_'+str(img)+'.jpg' in file:
                                     imgs.append(Image.open(file)) 
                         us_dict['images'] = imgs
+                    # if 'IMG' not in folder and 'US' not in folder: 
+                    #     logger.debug('getting labels')
+                    meta_files = glob.glob(os.path.join(folder,'*.json'))
+                    for mf in meta_files:
+                        if 'ultrasound' in mf:
+                            with open(mf, 'r') as f:
+                                meta_us = json.load(f)
+                            logger.info(meta_us['Data Labels'])
+                            meta_us_df = pd.DataFrame.from_dict(meta_us['Data Labels']).T
+                            logger.info(meta_us_df.index)
+                            for row in meta_us_df.index: 
+                                meta_us_df.loc[row, 'file_id'] = row
+                            us_dict['metadata'] = meta_us_df
+                            logger.info(meta_us_df)
+                    
             
             if len(data_us) > 0:
                 logger.debug('ultrasound data loaded')
@@ -390,5 +393,5 @@ if __name__ == '__main__':
     # Select the id of the sample to visualize
     SAMPLE_ID = '290'
     
-    main(DATA_PATH, SAMPLE_ID, 'ultrasound,scanner', verbose=True)
+    main(DATA_PATH, SAMPLE_ID, 'ultrasound,scanner', verbose=False)
     
