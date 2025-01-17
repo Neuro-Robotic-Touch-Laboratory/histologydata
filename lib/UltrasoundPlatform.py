@@ -13,7 +13,7 @@ matplotlib.use('TkAgg')
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def plot_data_us(data, verbose = False):
+def plot_data_us(data):
     """
     Plots ultrasound data alongside corresponding images in a side-by-side layout. 
     For each column of the ultrasound data (stored in a DataFrame), the function 
@@ -209,15 +209,7 @@ def plot_data_us_aggregated(data, datatype = 'hf'):
     # Convert to a new DataFrame
     expanded_df = pd.DataFrame(data_expanded)
 
-    # Step 3: Create the interactive plot
-    fig = px.line(
-        expanded_df,
-        x='Sample',
-        y='Value',
-        color='Label',
-        line_group='File ID',
-        hover_data={'File ID': True, 'Label': True}
-    )
+    
     
     if 'norm' in datatype:
         ylabel = 'Standardized US signal [a.u.]' 

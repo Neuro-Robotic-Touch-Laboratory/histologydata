@@ -1,6 +1,7 @@
 import os
+import glob 
 import json
-
+import numpy as np
 import logging
 
 # Set up logger
@@ -17,7 +18,7 @@ def set_metadata(data_path, sample_id, metadata, verbose = False):
         - data_path (str): The root directory path containing the sample data.
         - sample_id (str): The unique identifier of the sample.
         - metadata (dict): A dictionary containing the metadata to be added. It should contain keys like:
-        'species', 'gender', 'age', 'material', 'material_add', 'diagn', 'history', 
+        'species', 'gender', 'age', 'tissue', 'tissue_add', 'diagn', 'history', 
         'date_scan', 'distance', 'resolution', 'exposure', 'date_us', 'n_points'.
         - verbose (bool, optional): Flag to control logging level (default is False).
     
@@ -53,34 +54,86 @@ def set_metadata(data_path, sample_id, metadata, verbose = False):
             color_path_b = type
         elif 'depth' in type:
             depth_path_b = type
-    ultrasound_path = get_child_folders_at_level(path, 1, verbose)[1]
+            
+    if "date_us" in metadata.keys():
+        ultrasound_path = get_child_folders_at_level(path, 1, verbose)[1]
     
-    list_of_paths = [data_path, scanner_path, top_path, color_path_t, depth_path_t, bottom_path, color_path_b, depth_path_b, ultrasound_path]
+    list_of_paths = [path, scanner_path, top_path, color_path_t, depth_path_t, bottom_path, color_path_b, depth_path_b]
     
-    list_of_filenames = ['sample', 'scanner', 'hemisphere', 'type', 'type','hemisphere', 'type', 'type','ultrasound']
+    list_of_filenames = ['sample', 'scanner', 'hemisphere', 'type', 'type','hemisphere', 'type', 'type']
     
-    list_of_metadatas = [__metadata_structure_sample__(sample_id, metadata['species'], metadata['gender'], metadata['age'], metadata['material'], metadata['material_add'], metadata['diagn'], metadata['history']), 
-                     __metadata_structure_scanner__(metadata['date_scan'], metadata['distance'],metadata['resolution'], metadata['exposure']), 
-                     __metadata_structure_hemisphere__('top'), 
+    list_of_metadatas = [__metadata_structure_sample__(sample_id, metadata['species'], metadata['gender'], metadata['age'], metadata['tissue'], metadata['tissue_add'], metadata['diagn'], metadata['history']), 
+                     __metadata_structure_scanner__(metadata['date_scan'], metadata['distance'],metadata['resolution']), 
+                     __metadata_structure_hemisphere__('top', metadata['exposure']), 
                      __metadata_structure_type__('color'),
                      __metadata_structure_type__('depth'),
-                     __metadata_structure_hemisphere__('bottom'), 
+                     __metadata_structure_hemisphere__('bottom', metadata['exposure']), 
                      __metadata_structure_type__('color'),
-                     __metadata_structure_type__('depth'),
-                     __metadata_structure_ultrasound__(metadata['date_us'], metadata['n_points'])
+                     __metadata_structure_type__('depth')
                      ]
+    
+    if "date_us" in metadata.keys():
+        ultrasound_path = get_child_folders_at_level(path, 1, verbose)[1]
+        list_of_paths.append(ultrasound_path)
+        list_of_filenames.append('ultrasound')
+        list_of_metadatas.append(__metadata_structure_ultrasound__(metadata['date_us'], metadata['n_points'], sample_id))
     
     write_metadata(list_of_metadatas, list_of_paths, list_of_filenames, verbose)
     
     logger.info('created metadata')
+   
+def get_metadata(data_path, sample_id, target_level, verbose = False):
+    """
+    Function to get the metadata for a sample, at the target path level specified by the user. 
     
-def __metadata_structure_sample__(id = '', species= '', gender= '', age = 0, material= '', material_add= '', diagn= '', history= ''):
+    Args:
+        - data_path (str): The root directory path containing the sample data.
+        - sample_id (str): The unique identifier of the sample.
+        - target_level (int): The depth level at which the metadata folder should be collected. 
+        - verbose (bool, optional): Flag to control logging level (default is False).
+    
+    Returns:
+        - metadata (dict): A dictionary containing the metadata to be added.
+        - path (str): The directory in which the metadata file is located
+        - file_id (str): The ID of the metadata file 
+        
+    Author:
+        - Name: Fabrizia Auletta
+        - Date: 17/1/2025
+        - Contact: fabrizia.auletta@santannapisa.it
+    """
+    
+    if verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+    
+    parent_path = os.path.join(data_path, sample_id)
+    
+    child_paths = get_child_folders_at_level(parent_path, target_level, verbose)
+    
+    if len(child_paths) == 0:
+        path = parent_path
+    elif len(child_paths) == 1: 
+        path = child_paths[0]
+    else:
+        logger.info('Found %s subfolders:', len(child_paths))
+        for i in range(len(child_paths)): 
+            logger.info('%s - %s', i, child_paths[i])
+        selected_id = input('Type the number of the desired one:\n')
+        path = child_paths[int(selected_id)]
+        
+    metadata, file_id = read_metadata(path, verbose)
+    
+    return metadata, path, file_id
+    
+def __metadata_structure_sample__(id = '', species= '', gender= '', age = 0, tissue= '', tissue_add= '', diagn= '', history= ''):
     struct = {"Tissue ID": id,
         "Species" : species,
         "Gender" : gender, 
         "Age" : age, 
-        "Sample material": material, 
-        "Sample material additional info" : material_add, 
+        "Tissue (sample)": tissue, 
+        "Tissue (sample) additional info" : tissue_add, 
         "Diagnosis" : diagn,
         "Medical history" : history, 
         "Fixation method" : '',
@@ -90,7 +143,7 @@ def __metadata_structure_sample__(id = '', species= '', gender= '', age = 0, mat
         }
     return struct
 
-def __metadata_structure_scanner__(date= '', distance = 0, resolution = '', exposure = 0):
+def __metadata_structure_scanner__(date= '', distance = 0, resolution = ''):
     struct = {
         "Collector ID" : 'MCM',   
         "Date of acquisition": date,
@@ -98,7 +151,6 @@ def __metadata_structure_scanner__(date= '', distance = 0, resolution = '', expo
         "Camera serial": 218622277156,
         "Camera distance": distance,
         "Camera resolution" : resolution,
-        "Exposure time": exposure,
         "Background": 'white',
         "Illumination" : 'LED',
         "Intrinsic matrix": [
@@ -129,9 +181,10 @@ def __metadata_structure_scanner__(date= '', distance = 0, resolution = '', expo
         }
     return struct
 
-def __metadata_structure_hemisphere__(hemisphere):
+def __metadata_structure_hemisphere__(hemisphere, exposure = 0):
     struct = {
         "Tissue hemisphere": hemisphere,
+        "Exposure time": exposure,
         "path_level": 2,
         }
     return struct
@@ -153,17 +206,20 @@ def __metadata_usparam__():
     }
     return struct
 
-def __data_labels_and_params__():
-    struct = {
-        "point" : {
-        "Label" : '',
-        "Height" : 0,
-        "Gain" : 0,
-        "Filter MHz" : 10,}
-    }
+def __data_labels_and_params__(sample_id = '', n_points = 1):
+    
+    struct = {}
+    for n in range(n_points):
+        struct.update({
+            sample_id + '_'+ str(n+1) : {
+            "Label" : '',
+            "Height" : 0,
+            "Gain" : 0,
+            "Filter MHz" : 10,}
+        })
     return struct
 
-def __metadata_structure_ultrasound__(date = '', n_points = 0):
+def __metadata_structure_ultrasound__(date = '', n_points = 0, sample_id = ''):
     struct = {
         "Collector ID" : 'IB',   
         "Date of acquisition": date,
@@ -171,7 +227,7 @@ def __metadata_structure_ultrasound__(date = '', n_points = 0):
         "TX/RX device model": 'US-KEY Lecoeur Electronique',
         "TX/RX device params": __metadata_usparam__(),
         "Number of data points": n_points, 
-        "Data labels": __data_labels_and_params__(),
+        "Data labels": __data_labels_and_params__(sample_id, n_points),
         "path_level": 1,
         }
     return struct
@@ -291,32 +347,76 @@ def write_metadata(metadatas: list, paths: list, filenames : list, verbose = Fal
         
         # Write the metadata dictionary to a JSON file
         with open(os.path.join(p,f+'_metadata.json'),'w') as file:
-            json.dump(d,file)
+            json.dump(d,file, indent=4)
     return True
+
+def read_metadata(paths: str, verbose=False):
+    """
+    Reads metadata from JSON files located in specified paths with specified filenames.
+
+    Args:
+        - paths : str
+            Directory path where the JSON files is located.
+        - verbose : bool, optional
+            If True, sets the logger to DEBUG level to provide detailed output (default is False).
+
+    Returns:
+        - dictionary
+            Metadata dictionary read from the specified JSON file.
+
+    Author:
+        - Name: Fabrizia Auletta
+        - Date: 17/1/2025
+        - Contact: fabrizia.auletta@santannapisa.it
+    """
+
+    if verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+    
+    file_path = glob.glob(os.path.join(paths, '*.json'))[0]
+    file_name = file_path.split('/')[-1]
+    file_id = file_name.split('_metadata.json')[0]
+
+    logger.debug("Reading file: %s", file_name)
+
+    try:
+        # Read the metadata from the JSON file
+        with open(file_path, 'r') as file:
+            metadata = json.load(file)
+            logger.debug(f"Keys in metadata: {list(metadata.keys())}")
+    except FileNotFoundError:
+        logger.error(f"File not found: {file_path}")
+    except json.JSONDecodeError:
+        logger.error(f"Error decoding JSON file: {file_path}")
+
+    return metadata, file_id
 
 if __name__ == '__main__':
     
     # Select the folder containing the data 
-    DATA_PATH = './histologydata/example_data'
+    # DATA_PATH = './histologydata/example_data'
+    DATA_PATH = '/Users/fabltt/Dropbox (SSSUP)/shared_DataPaper_SSSA_UniCam/01 - Dataset'
      
     # Select the id of the sample to visualize
-    SAMPLE_ID = '290'
+    SAMPLE_ID = '427'
     
     METADATA = {
     "species" : 'dog',
-    "gender" : 'male',
-    "age" : 12,
-    "material" : '',
-    "material_add" : '',
-    "diagn" : '',
+    "gender" : 'N/A',
+    "age" : 10,
+    "tissue" : 'cutaneus (perianal)',
+    "tissue_add" : '',
+    "diagn" : 'Perianal gland epithelioma',
     "history" : '',
-    "date_scan" : '20241003',
-    "distance" : 90,
-    "resolution" : '1280x720',
-    "exposure" : 7000,
-    "date_us" : '20240528',
-    "n_points" : 11,
+    "date_scan" : '20240618',
+    "distance" : 130,
+    "resolution" : '1280x720', #1280x720, 848x480 or 640x320
+    "exposure" : 3800,
+    # "date_us" : '',
+    # "n_points" : 0,
 }
     
-    set_metadata(DATA_PATH, SAMPLE_ID, METADATA, verbose=True)
+    set_metadata(DATA_PATH, SAMPLE_ID, METADATA, verbose=False)
     
